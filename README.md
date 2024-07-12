@@ -10,3 +10,4 @@ To setup the database, after launching the server type --  http://localhost/phpm
 
 To launch the website type -- http://localhost/"Name of the folder containing the repository"/  in your url tab.
 
+Skills: T-SQL Stored Procedures · Online Platforms · WAMP · Cascading Style Sheets (CSS) · Programming Languages · JavaScrip
