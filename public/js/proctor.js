@@ -1,7 +1,7 @@
 /**
  * Anti-Cheating Proctoring Engine
  * Monitors browser tab switching, window defocus, fullscreen exit, right-click, and copy-paste shortcuts.
- * Includes permission grace period, event debouncing, and permission prompt protection.
+ * Includes permission grace period, event debouncing, and standalone GitHub Pages fallback logging.
  */
 
 window.ProctorEngine = {
@@ -98,13 +98,12 @@ window.ProctorEngine = {
   async triggerViolation(type, details) {
     const now = Date.now();
 
-    // Ignore if exam is inactive, in initial grace period, or within 2.5 second debounce window
     if (!this.isExamActive || this.isRequestingPermission || now < this.gracePeriodEndTime) {
       return;
     }
 
     if (now - this.lastViolationTime < 2500) {
-      return; // Debounce rapid multi-events (e.g. exit fullscreen causing both fullscreenchange AND blur)
+      return; // Debounce rapid multi-events
     }
 
     this.lastViolationTime = now;
@@ -112,19 +111,32 @@ window.ProctorEngine = {
     this.playWarningBeep();
     this.updateViolationBadge();
 
-    // Log violation to backend
-    try {
-      await fetch('/api/proctor/violation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          exam_id: this.examId,
-          violation_type: type,
-          details: details
-        })
+    // Log violation to backend or localStorage
+    if (window.App && window.App.isMockMode) {
+      const logs = JSON.parse(localStorage.getItem('mock_logs') || '[]');
+      const user = window.App.currentUser || { name: 'Demo Student', email: 'student@exam.com' };
+      logs.unshift({
+        id: Date.now(),
+        user_name: user.name,
+        user_email: user.email,
+        exam_title: (window.App.activeExam ? window.App.activeExam.title : 'Active Exam'),
+        violation_type: type,
+        details: details,
+        logged_at: new Date().toISOString()
       });
-    } catch (err) {
-      console.error('Failed to log proctoring violation:', err);
+      localStorage.setItem('mock_logs', JSON.stringify(logs));
+    } else {
+      try {
+        await fetch('api/proctor/violation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            exam_id: this.examId,
+            violation_type: type,
+            details: details
+          })
+        });
+      } catch (err) {}
     }
 
     if (this.currentViolations >= this.maxViolations) {

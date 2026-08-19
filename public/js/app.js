@@ -1,6 +1,6 @@
 /**
  * Online Examination Platform Client App Router & UI Controller
- * Includes Onboarding System Check & Camera Grant Modal
+ * Features full API integration + GitHub Pages Static Standalone Fallback Engine
  */
 
 window.App = {
@@ -10,9 +10,11 @@ window.App = {
   currentQuestionIndex: 0,
   timerInterval: null,
   remainingSeconds: 0,
+  isMockMode: false,
 
   async init() {
     this.setupTheme();
+    this.initMockDB();
     await this.checkAuthStatus();
   },
 
@@ -31,19 +33,102 @@ window.App = {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
   },
 
+  // Client-Side Storage Engine for GitHub Pages Static Deployment
+  initMockDB() {
+    if (!localStorage.getItem('mock_exams')) {
+      const demoExams = [
+        {
+          id: 1,
+          title: 'Full-Stack Web Development & JS Certification',
+          description: 'Assessment testing JavaScript ES6+, Web APIs, Async I/O, and DOM event handling under anti-cheating proctoring.',
+          code: 'WEB-101',
+          duration_minutes: 15,
+          total_question: 10,
+          marks_per_right: 2.0,
+          marks_per_wrong: 0.5,
+          enable_proctoring: 1,
+          max_violations: 3,
+          enable_fullscreen: 1,
+          status: 'Started'
+        },
+        {
+          id: 2,
+          title: 'Cybersecurity & Anti-Cheating Fundamentals',
+          description: 'Test your knowledge on web security vulnerabilities (SQLi, XSS, CSRF, IDOR) and defensive coding.',
+          code: 'SEC-202',
+          duration_minutes: 10,
+          total_question: 5,
+          marks_per_right: 2.0,
+          marks_per_wrong: 0.0,
+          enable_proctoring: 1,
+          max_violations: 2,
+          enable_fullscreen: 1,
+          status: 'Started'
+        }
+      ];
+      localStorage.setItem('mock_exams', JSON.stringify(demoExams));
+    }
+
+    if (!localStorage.getItem('mock_questions')) {
+      const demoQuestions = [
+        {
+          id: 101, exam_id: 1, question_title: 'Which HTML5 JavaScript event API is used to detect when a user switches tabs or minimizes the browser window?',
+          options: [{ id: 1, option_number: 1, option_title: 'window.onblur', is_correct: 0 }, { id: 2, option_number: 2, option_title: 'document.visibilitychange', is_correct: 1 }, { id: 3, option_number: 3, option_title: 'document.onpagehide', is_correct: 0 }, { id: 4, option_number: 4, option_title: 'window.ontabswitch', is_correct: 0 }]
+        },
+        {
+          id: 102, exam_id: 1, question_title: 'How do you prevent SQL Injection vulnerabilities in modern database applications?',
+          options: [{ id: 5, option_number: 1, option_title: 'Use htmlspecialchars() on raw SQL', is_correct: 0 }, { id: 6, option_number: 2, option_title: 'Use PDO Prepared Statements with parameter binding', is_correct: 1 }, { id: 7, option_number: 3, option_title: 'Use base64 encoding on query strings', is_correct: 0 }, { id: 8, option_number: 4, option_title: 'Disable database error logging', is_correct: 0 }]
+        },
+        {
+          id: 103, exam_id: 1, question_title: 'What does the `window.onblur` event detect during an online proctored examination?',
+          options: [{ id: 9, option_number: 1, option_title: 'When the webcam loses light', is_correct: 0 }, { id: 10, option_number: 2, option_title: 'When the browser window loses focus or user clicks outside', is_correct: 1 }, { id: 11, option_number: 3, option_title: 'When the internet disconnects', is_correct: 0 }, { id: 12, option_number: 4, option_title: 'When the timer expires', is_correct: 0 }]
+        },
+        {
+          id: 201, exam_id: 2, question_title: 'Which password hashing algorithm is recommended for securely storing user credentials?',
+          options: [{ id: 13, option_number: 1, option_title: 'MD5', is_correct: 0 }, { id: 14, option_number: 2, option_title: 'SHA-1', is_correct: 0 }, { id: 15, option_number: 3, option_title: 'Bcrypt / Argon2', is_correct: 1 }, { id: 16, option_number: 4, option_title: 'Base64', is_correct: 0 }]
+        },
+        {
+          id: 202, exam_id: 2, question_title: 'What feature automatically submits an online exam when anti-cheating tab-switching limits are breached?',
+          options: [{ id: 17, option_number: 1, option_title: 'Proctor Auto-Termination Engine', is_correct: 1 }, { id: 18, option_number: 2, option_title: 'Garbage Collector', is_correct: 0 }, { id: 19, option_number: 3, option_title: 'Session Timeout', is_correct: 0 }, { id: 20, option_number: 4, option_title: 'CORS Guard', is_correct: 0 }]
+        }
+      ];
+      localStorage.setItem('mock_questions', JSON.stringify(demoQuestions));
+    }
+
+    if (!localStorage.getItem('mock_enrollments')) {
+      localStorage.setItem('mock_enrollments', JSON.stringify([]));
+    }
+
+    if (!localStorage.getItem('mock_answers')) {
+      localStorage.setItem('mock_answers', JSON.stringify([]));
+    }
+
+    if (!localStorage.getItem('mock_logs')) {
+      localStorage.setItem('mock_logs', JSON.stringify([]));
+    }
+  },
+
   async checkAuthStatus() {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('api/auth/me');
+      if (!res.ok) throw new Error('API unavailable');
       const data = await res.json();
       if (data.success && data.user) {
         this.currentUser = data.user;
         this.renderMainLayout();
-      } else {
-        this.renderAuthScreen();
+        return;
       }
     } catch (err) {
-      this.renderAuthScreen();
+      // API unavailable -> Switch to Standalone Client Mock Mode for GitHub Pages
+      this.isMockMode = true;
+      const session = localStorage.getItem('mock_session');
+      if (session) {
+        this.currentUser = JSON.parse(session);
+        this.renderMainLayout();
+        return;
+      }
     }
+    this.renderAuthScreen();
   },
 
   renderAuthScreen() {
@@ -56,6 +141,7 @@ window.App = {
             </div>
             <h1 class="text-2xl font-black text-white">Online Exam Portal</h1>
             <p class="text-slate-400 text-sm mt-1">Tab-Switch Proctoring & Assessment System</p>
+            ${this.isMockMode ? `<span class="inline-block mt-2 text-[10px] uppercase tracking-widest font-black px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800">GitHub Pages Standalone Mode</span>` : ''}
           </div>
 
           <!-- Tabs -->
@@ -72,11 +158,11 @@ window.App = {
             <div class="space-y-4">
               <div>
                 <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Email Address</label>
-                <input type="email" id="login-email" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition" placeholder="student@exam.com">
+                <input type="email" id="login-email" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition" value="student@exam.com">
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Password</label>
-                <input type="password" id="login-password" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition" placeholder="••••••••">
+                <input type="password" id="login-password" required class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition" value="student123">
               </div>
               <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition">
                 Sign In
@@ -150,8 +236,22 @@ window.App = {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
+    if (this.isMockMode) {
+      const userRole = email.includes('admin') ? 'admin' : 'student';
+      const mockUser = {
+        id: email === 'admin@exam.com' ? 1 : 2,
+        name: email === 'admin@exam.com' ? 'Master Administrator' : 'Demo Student',
+        email: email,
+        role: userRole
+      };
+      localStorage.setItem('mock_session', JSON.stringify(mockUser));
+      this.currentUser = mockUser;
+      this.renderMainLayout();
+      return;
+    }
+
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -176,8 +276,14 @@ window.App = {
     const gender = document.getElementById('reg-gender').value;
     const role = document.getElementById('reg-role').value;
 
+    if (this.isMockMode) {
+      this.showAuthSuccess('Account created! Please login now.');
+      this.showAuthTab('login');
+      return;
+    }
+
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, gender, role })
@@ -272,126 +378,157 @@ window.App = {
     const main = document.getElementById('main-content');
     main.innerHTML = `<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i></div>`;
 
-    try {
-      const res = await fetch('/api/exams');
-      const data = await res.json();
-      const exams = data.exams || [];
+    let exams = [];
+    if (this.isMockMode) {
+      const mockExams = JSON.parse(localStorage.getItem('mock_exams') || '[]');
+      const enrollments = JSON.parse(localStorage.getItem('mock_enrollments') || '[]');
+      const answers = JSON.parse(localStorage.getItem('mock_answers') || '[]');
 
-      const enrolled = exams.filter(e => e.enrollment_id);
-      const available = exams.filter(e => !e.enrollment_id);
+      exams = mockExams.map(e => {
+        const en = enrollments.find(x => x.user_id === this.currentUser.id && x.exam_id === e.id);
+        const ansScore = answers.filter(a => a.user_id === this.currentUser.id && a.exam_id === e.id).reduce((sum, a) => sum + (a.marks || 0), 0);
+        return {
+          ...e,
+          question_count: e.total_question || 5,
+          enrollment_id: en ? en.id : null,
+          attendance_status: en ? en.attendance_status : null,
+          total_score: en ? (en.total_score || ansScore) : 0
+        };
+      });
+    } else {
+      try {
+        const res = await fetch('api/exams');
+        const data = await res.json();
+        exams = data.exams || [];
+      } catch (e) {}
+    }
 
-      main.innerHTML = `
-        <div class="space-y-8">
-          <!-- Banner -->
-          <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between">
-            <div>
-              <h2 class="text-2xl sm:text-3xl font-black mb-2">Welcome back, ${this.currentUser.name}!</h2>
-              <p class="text-indigo-100 text-sm max-w-lg">
-                Anti-cheating tab-switching detection active. Maintain browser focus during active examinations.
-              </p>
-            </div>
-            <div class="mt-4 sm:mt-0 flex space-x-3">
-              <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl text-center">
-                <span class="block text-2xl font-black">${enrolled.length}</span>
-                <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-200">Enrolled</span>
-              </div>
-              <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl text-center">
-                <span class="block text-2xl font-black">${available.length}</span>
-                <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-200">Available</span>
-              </div>
-            </div>
-          </div>
+    const enrolled = exams.filter(e => e.enrollment_id);
+    const available = exams.filter(e => !e.enrollment_id);
 
-          <!-- Section: Available Exams -->
+    main.innerHTML = `
+      <div class="space-y-8">
+        <!-- Banner -->
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between">
           <div>
-            <h3 class="text-lg font-black text-slate-900 dark:text-white mb-4 flex items-center">
-              <i class="fas fa-list-check text-indigo-600 mr-2"></i> Available Examinations
-            </h3>
-            ${available.length === 0 ? `
-              <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-center text-slate-500 text-sm">
-                No new exams available for enrollment right now.
-              </div>
-            ` : `
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${available.map(e => `
-                  <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-                    <div>
-                      <div class="flex items-center justify-between mb-3">
-                        <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
-                          Code: ${e.code}
-                        </span>
-                        <span class="text-xs font-bold text-slate-500">
-                          <i class="fas fa-clock mr-1"></i>${e.duration_minutes} Mins
-                        </span>
-                      </div>
-                      <h4 class="font-bold text-slate-900 dark:text-white text-base mb-2">${e.title}</h4>
-                      <p class="text-slate-500 dark:text-slate-400 text-xs mb-4 line-clamp-2">${e.description || 'Proctored online examination.'}</p>
-                    </div>
-
-                    <div class="pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
-                      <div class="text-xs text-slate-500">
-                        <i class="fas fa-question-circle text-indigo-500 mr-1"></i> ${e.question_count} Questions
-                      </div>
-                      <button onclick="App.enrollExam(${e.id})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                        Enroll Now
-                      </button>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            `}
+            <h2 class="text-2xl sm:text-3xl font-black mb-2">Welcome back, ${this.currentUser.name}!</h2>
+            <p class="text-indigo-100 text-sm max-w-lg">
+              Anti-cheating tab-switching detection active. Maintain browser focus during active examinations.
+            </p>
           </div>
-
-          <!-- Section: My Enrolled Exams -->
-          <div>
-            <h3 class="text-lg font-black text-slate-900 dark:text-white mb-4 flex items-center">
-              <i class="fas fa-folder-open text-purple-600 mr-2"></i> My Enrolled Examinations
-            </h3>
-            ${enrolled.length === 0 ? `
-              <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-center text-slate-500 text-sm">
-                You have not enrolled in any examinations yet.
-              </div>
-            ` : `
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${enrolled.map(e => `
-                  <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div class="flex items-center justify-between mb-3">
-                        <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg ${e.attendance_status === 'Present' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'}">
-                          Status: ${e.attendance_status === 'Present' ? 'Completed' : 'Enrolled'}
-                        </span>
-                        <span class="text-xs font-bold text-slate-500"><i class="fas fa-clock mr-1"></i>${e.duration_minutes} Mins</span>
-                      </div>
-                      <h4 class="font-bold text-slate-900 dark:text-white text-base mb-2">${e.title}</h4>
-                      <p class="text-slate-500 dark:text-slate-400 text-xs mb-4">${e.description || 'Online test.'}</p>
-                    </div>
-
-                    <div class="pt-4 border-t border-slate-100 dark:border-slate-700/50">
-                      ${e.attendance_status === 'Present' ? `
-                        <button onclick="App.viewResult(${e.id})" class="w-full py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                          <i class="fas fa-chart-pie mr-1.5"></i> View Scorecard & Certificate
-                        </button>
-                      ` : `
-                        <button onclick="App.openExamOnboarding('${e.code}')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center">
-                          <i class="fas fa-play mr-2 text-xs"></i> Take Exam Now
-                        </button>
-                      `}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            `}
+          <div class="mt-4 sm:mt-0 flex space-x-3">
+            <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl text-center">
+              <span class="block text-2xl font-black">${enrolled.length}</span>
+              <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-200">Enrolled</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl text-center">
+              <span class="block text-2xl font-black">${available.length}</span>
+              <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-200">Available</span>
+            </div>
           </div>
         </div>
-      `;
-    } catch (err) {
-      main.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded-xl text-center">${err.message}</div>`;
-    }
+
+        <!-- Section: Available Exams -->
+        <div>
+          <h3 class="text-lg font-black text-slate-900 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-list-check text-indigo-600 mr-2"></i> Available Examinations
+          </h3>
+          ${available.length === 0 ? `
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-center text-slate-500 text-sm">
+              No new exams available for enrollment right now.
+            </div>
+          ` : `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              ${available.map(e => `
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                        Code: ${e.code}
+                      </span>
+                      <span class="text-xs font-bold text-slate-500">
+                        <i class="fas fa-clock mr-1"></i>${e.duration_minutes} Mins
+                      </span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 dark:text-white text-base mb-2">${e.title}</h4>
+                    <p class="text-slate-500 dark:text-slate-400 text-xs mb-4 line-clamp-2">${e.description || 'Proctored online examination.'}</p>
+                  </div>
+
+                  <div class="pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+                    <div class="text-xs text-slate-500">
+                      <i class="fas fa-question-circle text-indigo-500 mr-1"></i> ${e.question_count} Questions
+                    </div>
+                    <button onclick="App.enrollExam(${e.id})" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                      Enroll Now
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+
+        <!-- Section: My Enrolled Exams -->
+        <div>
+          <h3 class="text-lg font-black text-slate-900 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-folder-open text-purple-600 mr-2"></i> My Enrolled Examinations
+          </h3>
+          ${enrolled.length === 0 ? `
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-center text-slate-500 text-sm">
+              You have not enrolled in any examinations yet.
+            </div>
+          ` : `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              ${enrolled.map(e => `
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg ${e.attendance_status === 'Present' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'}">
+                        Status: ${e.attendance_status === 'Present' ? 'Completed' : 'Enrolled'}
+                      </span>
+                      <span class="text-xs font-bold text-slate-500"><i class="fas fa-clock mr-1"></i>${e.duration_minutes} Mins</span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 dark:text-white text-base mb-2">${e.title}</h4>
+                    <p class="text-slate-500 dark:text-slate-400 text-xs mb-4">${e.description || 'Online test.'}</p>
+                  </div>
+
+                  <div class="pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                    ${e.attendance_status === 'Present' ? `
+                      <button onclick="App.viewResult(${e.id})" class="w-full py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                        <i class="fas fa-chart-pie mr-1.5"></i> View Scorecard & Certificate
+                      </button>
+                    ` : `
+                      <button onclick="App.openExamOnboarding('${e.code}')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center">
+                        <i class="fas fa-play mr-2 text-xs"></i> Take Exam Now
+                      </button>
+                    `}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
   },
 
   async enrollExam(examId) {
+    if (this.isMockMode) {
+      const enrollments = JSON.parse(localStorage.getItem('mock_enrollments') || '[]');
+      enrollments.push({
+        id: Date.now(),
+        user_id: this.currentUser.id,
+        exam_id: examId,
+        attendance_status: 'Absent',
+        total_score: 0
+      });
+      localStorage.setItem('mock_enrollments', JSON.stringify(enrollments));
+      this.loadStudentDashboard();
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/exams/enroll/${examId}`, { method: 'POST' });
+      const res = await fetch(`api/exams/enroll/${examId}`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         this.loadStudentDashboard();
@@ -404,8 +541,34 @@ window.App = {
   },
 
   async openExamOnboarding(code) {
+    if (this.isMockMode) {
+      const mockExams = JSON.parse(localStorage.getItem('mock_exams') || '[]');
+      const mockQuestions = JSON.parse(localStorage.getItem('mock_questions') || '[]');
+      const enrollments = JSON.parse(localStorage.getItem('mock_enrollments') || '[]');
+
+      const exam = mockExams.find(e => e.code === code);
+      if (!exam) return;
+
+      const questions = mockQuestions.filter(q => q.exam_id === exam.id);
+      this.activeExam = exam;
+      this.activeQuestions = questions;
+      this.currentQuestionIndex = 0;
+      this.remainingSeconds = exam.duration_minutes * 60;
+
+      window.ProctorEngine.init({
+        examId: this.activeExam.id,
+        maxViolations: this.activeExam.max_violations || 3,
+        initialViolations: 0,
+        enableProctoring: !!this.activeExam.enable_proctoring,
+        enableFullscreen: !!this.activeExam.enable_fullscreen
+      });
+
+      this.renderOnboardingModal();
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/exams/start/${code}`);
+      const res = await fetch(`api/exams/start/${code}`);
       const data = await res.json();
 
       if (!data.success) {
@@ -424,7 +587,6 @@ window.App = {
       this.currentQuestionIndex = 0;
       this.remainingSeconds = data.exam.duration_minutes * 60;
 
-      // Initialize Proctor Engine config (inactive until confirmed)
       window.ProctorEngine.init({
         examId: this.activeExam.id,
         maxViolations: this.activeExam.max_violations || 3,
@@ -433,61 +595,64 @@ window.App = {
         enableFullscreen: !!this.activeExam.enable_fullscreen
       });
 
-      // Show Onboarding Modal
-      const modalHtml = `
-        <div id="modal-exam-onboarding" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-md p-4">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl w-full border border-slate-200 dark:border-slate-700 shadow-2xl space-y-6">
-            <div class="text-center">
-              <div class="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl">
-                <i class="fas fa-user-shield"></i>
-              </div>
-              <h3 class="text-2xl font-black text-slate-900 dark:text-white">${this.activeExam.title}</h3>
-              <p class="text-xs text-slate-500 mt-1">Pre-Exam System Check & Anti-Cheating Guidelines</p>
-            </div>
-
-            <!-- Rules Summary -->
-            <div class="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 text-xs space-y-3">
-              <div class="font-bold text-slate-900 dark:text-white flex items-center">
-                <i class="fas fa-shield-cat text-indigo-500 mr-2 text-sm"></i> Examination Rules & Proctoring Policies:
-              </div>
-              <ul class="space-y-2 text-slate-600 dark:text-slate-300 pl-6 list-disc">
-                <li><strong>Tab Switching Monitored:</strong> Leaving or minimizing the browser tab is strictly logged.</li>
-                <li><strong>Window Focus Required:</strong> Clicking outside or using Alt+Tab will issue a warning.</li>
-                <li><strong>Violation Limit:</strong> Test auto-submits after <strong>${this.activeExam.max_violations} warnings</strong>.</li>
-                <li><strong>Fullscreen Mode:</strong> The test will launch in full screen.</li>
-              </ul>
-            </div>
-
-            <!-- Live Camera Test Widget -->
-            <div>
-              <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
-                <span>Webcam Check:</span>
-                <button onclick="App.checkCameraPermission()" class="text-indigo-600 hover:underline font-bold">
-                  <i class="fas fa-camera mr-1"></i> Grant & Preview Camera
-                </button>
-              </div>
-              <div id="onboarding-camera-box" class="bg-slate-100 dark:bg-slate-900 rounded-xl p-4 text-center text-xs text-slate-500 border border-dashed border-slate-300 dark:border-slate-700">
-                Click "Grant & Preview Camera" above to test your video feed (Optional).
-              </div>
-            </div>
-
-            <!-- Confirmation Button -->
-            <button onclick="App.startProctoredSession()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm rounded-xl shadow-xl shadow-emerald-600/30 transition flex items-center justify-center space-x-2">
-              <i class="fas fa-lock"></i>
-              <span>I Agree & Begin Examination</span>
-            </button>
-          </div>
-        </div>
-      `;
-
-      const old = document.getElementById('modal-exam-onboarding');
-      if (old) old.remove();
-
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      this.renderOnboardingModal();
     } catch (err) {
       alert(err.message);
       this.loadStudentDashboard();
     }
+  },
+
+  renderOnboardingModal() {
+    const modalHtml = `
+      <div id="modal-exam-onboarding" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-md p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl w-full border border-slate-200 dark:border-slate-700 shadow-2xl space-y-6">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl">
+              <i class="fas fa-user-shield"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-900 dark:text-white">${this.activeExam.title}</h3>
+            <p class="text-xs text-slate-500 mt-1">Pre-Exam System Check & Anti-Cheating Guidelines</p>
+          </div>
+
+          <!-- Rules Summary -->
+          <div class="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 text-xs space-y-3">
+            <div class="font-bold text-slate-900 dark:text-white flex items-center">
+              <i class="fas fa-shield-cat text-indigo-500 mr-2 text-sm"></i> Examination Rules & Proctoring Policies:
+            </div>
+            <ul class="space-y-2 text-slate-600 dark:text-slate-300 pl-6 list-disc">
+              <li><strong>Tab Switching Monitored:</strong> Leaving or minimizing the browser tab is strictly logged.</li>
+              <li><strong>Window Focus Required:</strong> Clicking outside or using Alt+Tab will issue a warning.</li>
+              <li><strong>Violation Limit:</strong> Test auto-submits after <strong>${this.activeExam.max_violations} warnings</strong>.</li>
+              <li><strong>Fullscreen Mode:</strong> The test will launch in full screen.</li>
+            </ul>
+          </div>
+
+          <!-- Live Camera Test Widget -->
+          <div>
+            <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+              <span>Webcam Check:</span>
+              <button onclick="App.checkCameraPermission()" class="text-indigo-600 hover:underline font-bold">
+                <i class="fas fa-camera mr-1"></i> Grant & Preview Camera
+              </button>
+            </div>
+            <div id="onboarding-camera-box" class="bg-slate-100 dark:bg-slate-900 rounded-xl p-4 text-center text-xs text-slate-500 border border-dashed border-slate-300 dark:border-slate-700">
+              Click "Grant & Preview Camera" above to test your video feed (Optional).
+            </div>
+          </div>
+
+          <!-- Confirmation Button -->
+          <button onclick="App.startProctoredSession()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm rounded-xl shadow-xl shadow-emerald-600/30 transition flex items-center justify-center space-x-2">
+            <i class="fas fa-lock"></i>
+            <span>I Agree & Begin Examination</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    const old = document.getElementById('modal-exam-onboarding');
+    if (old) old.remove();
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
   async checkCameraPermission() {
@@ -498,7 +663,6 @@ window.App = {
     document.getElementById('modal-exam-onboarding').remove();
     this.renderExamInterface(0);
 
-    // Start anti-cheating session cleanly on user click
     window.ProctorEngine.startExamSession();
 
     if (this.activeExam.enable_proctoring) {
@@ -654,8 +818,24 @@ window.App = {
 
     this.renderQuestionPalette();
 
+    if (this.isMockMode) {
+      const answers = JSON.parse(localStorage.getItem('mock_answers') || '[]');
+      const correctOpt = q.options.find(o => o.is_correct === 1);
+      const marks = (correctOpt && correctOpt.option_number === optionNumber) ? (this.activeExam.marks_per_right || 2.0) : -(this.activeExam.marks_per_wrong || 0);
+
+      const existingIdx = answers.findIndex(a => a.user_id === this.currentUser.id && a.exam_id === this.activeExam.id && a.question_id === questionId);
+      if (existingIdx >= 0) {
+        answers[existingIdx].option_number = optionNumber;
+        answers[existingIdx].marks = marks;
+      } else {
+        answers.push({ user_id: this.currentUser.id, exam_id: this.activeExam.id, question_id: questionId, option_number: optionNumber, marks });
+      }
+      localStorage.setItem('mock_answers', JSON.stringify(answers));
+      return;
+    }
+
     try {
-      await fetch('/api/exams/answer', {
+      await fetch('api/exams/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -674,8 +854,10 @@ window.App = {
     this.renderCurrentQuestion();
     this.renderQuestionPalette();
 
+    if (this.isMockMode) return;
+
     try {
-      await fetch('/api/exams/answer', {
+      await fetch('api/exams/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -739,8 +921,49 @@ window.App = {
     window.ProctorEngine.stopCamera();
     window.ProctorEngine.isExamActive = false;
 
+    if (this.isMockMode) {
+      const enrollments = JSON.parse(localStorage.getItem('mock_enrollments') || '[]');
+      const answers = JSON.parse(localStorage.getItem('mock_answers') || '[]');
+      const totalScore = answers.filter(a => a.user_id === this.currentUser.id && a.exam_id === this.activeExam.id).reduce((sum, a) => sum + (a.marks || 0), 0);
+
+      const existingIdx = enrollments.findIndex(e => e.user_id === this.currentUser.id && e.exam_id === this.activeExam.id);
+      const record = {
+        id: Date.now(),
+        user_id: this.currentUser.id,
+        exam_id: this.activeExam.id,
+        attendance_status: 'Present',
+        total_score: totalScore,
+        auto_submitted: autoSubmitted ? 1 : 0,
+        submitted_at: new Date().toISOString()
+      };
+
+      if (existingIdx >= 0) enrollments[existingIdx] = record;
+      else enrollments.push(record);
+
+      localStorage.setItem('mock_enrollments', JSON.stringify(enrollments));
+
+      if (autoSubmitted) {
+        const logs = JSON.parse(localStorage.getItem('mock_logs') || '[]');
+        logs.push({
+          id: Date.now(),
+          user_id: this.currentUser.id,
+          user_name: this.currentUser.name,
+          user_email: this.currentUser.email,
+          exam_id: this.activeExam.id,
+          exam_title: this.activeExam.title,
+          violation_type: 'AUTO_SUBMIT_TERMINATION',
+          details: reason,
+          logged_at: new Date().toISOString()
+        });
+        localStorage.setItem('mock_logs', JSON.stringify(logs));
+      }
+
+      this.viewResult(this.activeExam.id);
+      return;
+    }
+
     try {
-      const res = await fetch('/api/exams/submit', {
+      const res = await fetch('api/exams/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -767,93 +990,120 @@ window.App = {
     const main = document.getElementById('main-content');
     main.innerHTML = `<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i></div>`;
 
-    try {
-      const res = await fetch(`/api/exams/result/${examId}`);
-      const data = await res.json();
+    let exam = this.activeExam;
+    let enrollment = null;
+    let questions = [];
+    let totalPossible = 10;
 
-      if (!data.success) {
-        alert(data.error);
+    if (this.isMockMode) {
+      const mockExams = JSON.parse(localStorage.getItem('mock_exams') || '[]');
+      const mockQuestions = JSON.parse(localStorage.getItem('mock_questions') || '[]');
+      const enrollments = JSON.parse(localStorage.getItem('mock_enrollments') || '[]');
+      const answers = JSON.parse(localStorage.getItem('mock_answers') || '[]');
+
+      exam = mockExams.find(e => e.id === examId) || this.activeExam;
+      enrollment = enrollments.find(e => e.user_id === this.currentUser.id && e.exam_id === examId) || {
+        total_score: 0, auto_submitted: 0, submitted_at: new Date().toISOString()
+      };
+      questions = mockQuestions.filter(q => q.exam_id === examId).map(q => {
+        const ans = answers.find(a => a.user_id === this.currentUser.id && a.exam_id === examId && a.question_id === q.id);
+        return {
+          ...q,
+          user_answer_option: ans ? ans.option_number : 0,
+          marks_obtained: ans ? ans.marks : 0
+        };
+      });
+      totalPossible = questions.length * (exam.marks_per_right || 2);
+    } else {
+      try {
+        const res = await fetch(`api/exams/result/${examId}`);
+        const data = await res.json();
+        if (data.success) {
+          exam = data.exam;
+          enrollment = data.enrollment;
+          questions = data.questions;
+          totalPossible = data.totalPossible;
+        }
+      } catch (err) {
+        alert(err.message);
         this.loadStudentDashboard();
         return;
       }
+    }
 
-      const { exam, enrollment, questions, totalPossible } = data;
-      const percentage = Math.max(0, Math.round((enrollment.total_score / totalPossible) * 100));
-      const passed = percentage >= 50;
+    const percentage = Math.max(0, Math.round((enrollment.total_score / (totalPossible || 1)) * 100));
+    const passed = percentage >= 50;
 
-      main.innerHTML = `
-        <div class="max-w-4xl mx-auto space-y-8 print:p-0">
-          <!-- Scorecard Card -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-xl text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-3 ${passed ? 'bg-emerald-500' : 'bg-red-500'}"></div>
-            
-            <span class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-4 ${passed ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'}">
-              ${passed ? 'Passed Certificate' : 'Needs Improvement'}
-            </span>
+    main.innerHTML = `
+      <div class="max-w-4xl mx-auto space-y-8 print:p-0">
+        <!-- Scorecard Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-xl text-center relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-3 ${passed ? 'bg-emerald-500' : 'bg-red-500'}"></div>
+          
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-4 ${passed ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'}">
+            ${passed ? 'Passed Certificate' : 'Needs Improvement'}
+          </span>
 
-            <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-2">${exam.title}</h2>
-            <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Exam Result Scorecard & Breakdown</p>
+          <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-2">${exam.title}</h2>
+          <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Exam Result Scorecard & Breakdown</p>
 
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-6 my-6">
-              <div class="w-32 h-32 rounded-full border-8 ${passed ? 'border-emerald-500 text-emerald-600' : 'border-red-500 text-red-600'} flex flex-col items-center justify-center">
-                <span class="text-3xl font-black">${percentage}%</span>
-                <span class="text-[10px] uppercase font-bold text-slate-400">Score</span>
-              </div>
-              <div class="text-left space-y-2">
-                <div class="text-sm"><span class="font-bold text-slate-700 dark:text-slate-300">Marks Secured:</span> ${enrollment.total_score} / ${totalPossible}</div>
-                <div class="text-sm"><span class="font-bold text-slate-700 dark:text-slate-300">Submission Mode:</span> ${enrollment.auto_submitted ? '<span class="text-red-500 font-bold">Auto-Submitted (Proctor Limit)</span>' : 'Regular Submission'}</div>
-                <div class="text-sm"><span class="font-bold text-slate-700 dark:text-slate-300">Submitted At:</span> ${new Date(enrollment.submitted_at).toLocaleString()}</div>
-              </div>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-6 my-6">
+            <div class="w-32 h-32 rounded-full border-8 ${passed ? 'border-emerald-500 text-emerald-600' : 'border-red-500 text-red-600'} flex flex-col items-center justify-center">
+              <span class="text-3xl font-black">${percentage}%</span>
+              <span class="text-[10px] uppercase font-bold text-slate-400">Score</span>
             </div>
-
-            <div class="flex justify-center space-x-4 print:hidden">
-              <button onclick="window.print()" class="px-5 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition">
-                <i class="fas fa-print mr-1.5"></i> Print Certificate
-              </button>
-              <button onclick="App.loadStudentDashboard()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition">
-                Back to Dashboard
-              </button>
+            <div class="text-left space-y-2">
+              <div class="text-sm"><span class="font-bold text-slate-700 dark:text-slate-300">Marks Secured:</span> ${enrollment.total_score} / ${totalPossible}</div>
+              <div class="text-sm"><span class="font-bold text-slate-700 dark:text-slate-300">Submission Mode:</span> ${enrollment.auto_submitted ? '<span class="text-red-500 font-bold">Auto-Submitted (Proctor Limit)</span>' : 'Regular Submission'}</div>
+              <div class="text-sm"><span class="font-bold text-slate-700 dark:text-slate-300">Submitted At:</span> ${new Date(enrollment.submitted_at).toLocaleString()}</div>
             </div>
           </div>
 
-          <!-- Question Review Breakdown -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
-            <h3 class="text-lg font-black text-slate-900 dark:text-white mb-4">Detailed Question Breakdown</h3>
-
-            ${questions.map((q, idx) => {
-              const correctOpt = q.options.find(o => o.is_correct === 1);
-              const userOpt = q.options.find(o => o.option_number === q.user_answer_option);
-              const isRight = q.marks_obtained > 0;
-
-              return `
-                <div class="p-5 rounded-2xl border ${isRight ? 'border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-800' : 'border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800'}">
-                  <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold text-slate-500">Question ${idx + 1}</span>
-                    <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg ${isRight ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}">
-                      ${isRight ? `+${q.marks_obtained} Marks` : `${q.marks_obtained} Marks`}
-                    </span>
-                  </div>
-                  <h4 class="font-bold text-slate-900 dark:text-white text-base mb-3">${q.question_title}</h4>
-                  
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                      <span class="block text-slate-400 font-bold mb-1">Your Answer:</span>
-                      <span class="${isRight ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}">${userOpt ? userOpt.option_title : 'Not Answered'}</span>
-                    </div>
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-                      <span class="block text-slate-400 font-bold mb-1">Correct Answer:</span>
-                      <span class="text-emerald-600 font-bold">${correctOpt ? correctOpt.option_title : 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
+          <div class="flex justify-center space-x-4 print:hidden">
+            <button onclick="window.print()" class="px-5 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition">
+              <i class="fas fa-print mr-1.5"></i> Print Certificate
+            </button>
+            <button onclick="App.loadStudentDashboard()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition">
+              Back to Dashboard
+            </button>
           </div>
         </div>
-      `;
-    } catch (err) {
-      alert(err.message);
-    }
+
+        <!-- Question Review Breakdown -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
+          <h3 class="text-lg font-black text-slate-900 dark:text-white mb-4">Detailed Question Breakdown</h3>
+
+          ${questions.map((q, idx) => {
+            const correctOpt = q.options.find(o => o.is_correct === 1);
+            const userOpt = q.options.find(o => o.option_number === q.user_answer_option);
+            const isRight = q.marks_obtained > 0;
+
+            return `
+              <div class="p-5 rounded-2xl border ${isRight ? 'border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-800' : 'border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800'}">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-xs font-bold text-slate-500">Question ${idx + 1}</span>
+                  <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-lg ${isRight ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}">
+                    ${isRight ? `+${q.marks_obtained} Marks` : `${q.marks_obtained} Marks`}
+                  </span>
+                </div>
+                <h4 class="font-bold text-slate-900 dark:text-white text-base mb-3">${q.question_title}</h4>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span class="block text-slate-400 font-bold mb-1">Your Answer:</span>
+                    <span class="${isRight ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}">${userOpt ? userOpt.option_title : 'Not Answered'}</span>
+                  </div>
+                  <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    <span class="block text-slate-400 font-bold mb-1">Correct Answer:</span>
+                    <span class="text-emerald-600 font-bold">${correctOpt ? correctOpt.option_title : 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
   },
 
   // ================= ADMIN CONSOLE =================
@@ -861,134 +1111,141 @@ window.App = {
     const main = document.getElementById('main-content');
     main.innerHTML = `<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i></div>`;
 
-    try {
-      const [statsRes, examsRes, logsRes] = await Promise.all([
-        fetch('/api/proctor/admin/stats'),
-        fetch('/api/exams/admin/list'),
-        fetch('/api/proctor/admin/logs')
-      ]);
+    let stats = { total_exams: 2, total_students: 5, total_violations: 0, auto_submissions: 0 };
+    let exams = [];
+    let logs = [];
 
-      const statsData = await statsRes.json();
-      const examsData = await examsRes.json();
-      const logsData = await logsRes.json();
+    if (this.isMockMode) {
+      exams = JSON.parse(localStorage.getItem('mock_exams') || '[]');
+      logs = JSON.parse(localStorage.getItem('mock_logs') || '[]');
+      stats.total_exams = exams.length;
+      stats.total_violations = logs.length;
+      stats.auto_submissions = logs.filter(l => l.violation_type === 'AUTO_SUBMIT_TERMINATION').length;
+    } else {
+      try {
+        const [statsRes, examsRes, logsRes] = await Promise.all([
+          fetch('api/proctor/admin/stats'),
+          fetch('api/exams/admin/list'),
+          fetch('api/proctor/admin/logs')
+        ]);
+        stats = (await statsRes.json()).stats || {};
+        exams = (await examsRes.json()).exams || [];
+        logs = (await logsRes.json()).logs || [];
+      } catch (err) {}
+    }
 
-      const stats = statsData.stats || {};
-      const exams = examsData.exams || [];
-      const logs = logsData.logs || [];
-
-      main.innerHTML = `
-        <div class="space-y-8">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-2xl font-black text-slate-900 dark:text-white">Admin Audit & Examination Control</h2>
-              <p class="text-slate-500 text-xs">Manage proctored tests, question sets, and real-time tab switching violation logs.</p>
-            </div>
-            <button onclick="App.showCreateExamModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition">
-              <i class="fas fa-plus mr-1.5"></i> Create New Exam
-            </button>
+    main.innerHTML = `
+      <div class="space-y-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-black text-slate-900 dark:text-white">Admin Audit & Examination Control</h2>
+            <p class="text-slate-500 text-xs">Manage proctored tests, question sets, and real-time tab switching violation logs.</p>
           </div>
+          <button onclick="App.showCreateExamModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition">
+            <i class="fas fa-plus mr-1.5"></i> Create New Exam
+          </button>
+        </div>
 
-          <!-- Stats Cards -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <div class="text-xs font-bold uppercase text-slate-400 mb-1">Total Exams</div>
-              <div class="text-2xl font-black text-slate-900 dark:text-white">${stats.total_exams}</div>
-            </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <div class="text-xs font-bold uppercase text-slate-400 mb-1">Registered Students</div>
-              <div class="text-2xl font-black text-indigo-600 dark:text-indigo-400">${stats.total_students}</div>
-            </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <div class="text-xs font-bold uppercase text-slate-400 mb-1">Tab Violations Logged</div>
-              <div class="text-2xl font-black text-amber-500">${stats.total_violations}</div>
-            </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <div class="text-xs font-bold uppercase text-slate-400 mb-1">Auto Terminations</div>
-              <div class="text-2xl font-black text-red-600">${stats.auto_submissions}</div>
-            </div>
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="text-xs font-bold uppercase text-slate-400 mb-1">Total Exams</div>
+            <div class="text-2xl font-black text-slate-900 dark:text-white">${stats.total_exams}</div>
           </div>
-
-          <!-- Exam Management List -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-            <h3 class="text-base font-black text-slate-900 dark:text-white mb-4">Exam Registry</h3>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead>
-                  <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 uppercase">
-                    <th class="py-3 px-2">Title</th>
-                    <th class="py-3 px-2">Code</th>
-                    <th class="py-3 px-2">Questions</th>
-                    <th class="py-3 px-2">Duration</th>
-                    <th class="py-3 px-2">Proctoring</th>
-                    <th class="py-3 px-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
-                  ${exams.map(e => `
-                    <tr>
-                      <td class="py-3 px-2 font-bold text-slate-900 dark:text-white">${e.title}</td>
-                      <td class="py-3 px-2 font-mono text-indigo-600">${e.code}</td>
-                      <td class="py-3 px-2">${e.total_question} Qs</td>
-                      <td class="py-3 px-2">${e.duration_minutes} Mins</td>
-                      <td class="py-3 px-2">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${e.enable_proctoring ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-600'}">
-                          ${e.enable_proctoring ? `Active (Max ${e.max_violations} V)` : 'Disabled'}
-                        </span>
-                      </td>
-                      <td class="py-3 px-2 space-x-2">
-                        <button onclick="App.showQuestionManager(${e.id}, '${e.title}')" class="px-3 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 rounded-lg font-bold">
-                          Manage Qs
-                        </button>
-                        <button onclick="App.deleteExam(${e.id})" class="px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg font-bold">
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="text-xs font-bold uppercase text-slate-400 mb-1">Registered Students</div>
+            <div class="text-2xl font-black text-indigo-600 dark:text-indigo-400">${stats.total_students}</div>
           </div>
-
-          <!-- Proctoring Audit Logs Table -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-            <h3 class="text-base font-black text-slate-900 dark:text-white mb-4 flex items-center text-red-600">
-              <i class="fas fa-user-ninja mr-2"></i> Live Tab-Switching & Defocus Violation Audit Logs
-            </h3>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead>
-                  <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 uppercase">
-                    <th class="py-3 px-2">Timestamp</th>
-                    <th class="py-3 px-2">Student</th>
-                    <th class="py-3 px-2">Exam</th>
-                    <th class="py-3 px-2">Violation Event</th>
-                    <th class="py-3 px-2">Details</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
-                  ${logs.map(l => `
-                    <tr>
-                      <td class="py-3 px-2 text-slate-400">${new Date(l.logged_at).toLocaleString()}</td>
-                      <td class="py-3 px-2 font-bold text-slate-900 dark:text-white">${l.user_name} <br/><span class="text-[10px] text-slate-400 font-normal">${l.user_email}</span></td>
-                      <td class="py-3 px-2 font-bold text-indigo-600">${l.exam_title}</td>
-                      <td class="py-3 px-2">
-                        <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${l.violation_type === 'TAB_SWITCH' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'}">
-                          ${l.violation_type}
-                        </span>
-                      </td>
-                      <td class="py-3 px-2 text-slate-500 max-w-xs truncate">${l.details}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="text-xs font-bold uppercase text-slate-400 mb-1">Tab Violations Logged</div>
+            <div class="text-2xl font-black text-amber-500">${stats.total_violations}</div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="text-xs font-bold uppercase text-slate-400 mb-1">Auto Terminations</div>
+            <div class="text-2xl font-black text-red-600">${stats.auto_submissions}</div>
           </div>
         </div>
-      `;
-    } catch (err) {
-      alert(err.message);
-    }
+
+        <!-- Exam Management List -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+          <h3 class="text-base font-black text-slate-900 dark:text-white mb-4">Exam Registry</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 uppercase">
+                  <th class="py-3 px-2">Title</th>
+                  <th class="py-3 px-2">Code</th>
+                  <th class="py-3 px-2">Questions</th>
+                  <th class="py-3 px-2">Duration</th>
+                  <th class="py-3 px-2">Proctoring</th>
+                  <th class="py-3 px-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                ${exams.map(e => `
+                  <tr>
+                    <td class="py-3 px-2 font-bold text-slate-900 dark:text-white">${e.title}</td>
+                    <td class="py-3 px-2 font-mono text-indigo-600">${e.code}</td>
+                    <td class="py-3 px-2">${e.total_question || 5} Qs</td>
+                    <td class="py-3 px-2">${e.duration_minutes} Mins</td>
+                    <td class="py-3 px-2">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold ${e.enable_proctoring ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-600'}">
+                        ${e.enable_proctoring ? `Active (Max ${e.max_violations} V)` : 'Disabled'}
+                      </span>
+                    </td>
+                    <td class="py-3 px-2 space-x-2">
+                      <button onclick="App.showQuestionManager(${e.id}, '${e.title}')" class="px-3 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 rounded-lg font-bold">
+                        Manage Qs
+                      </button>
+                      <button onclick="App.deleteExam(${e.id})" class="px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg font-bold">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Proctoring Audit Logs Table -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+          <h3 class="text-base font-black text-slate-900 dark:text-white mb-4 flex items-center text-red-600">
+            <i class="fas fa-user-ninja mr-2"></i> Live Tab-Switching & Defocus Violation Audit Logs
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 uppercase">
+                  <th class="py-3 px-2">Timestamp</th>
+                  <th class="py-3 px-2">Student</th>
+                  <th class="py-3 px-2">Exam</th>
+                  <th class="py-3 px-2">Violation Event</th>
+                  <th class="py-3 px-2">Details</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                ${logs.length === 0 ? `
+                  <tr><td colspan="5" class="py-4 text-center text-slate-500">No anti-cheating violations recorded yet.</td></tr>
+                ` : logs.map(l => `
+                  <tr>
+                    <td class="py-3 px-2 text-slate-400">${new Date(l.logged_at).toLocaleString()}</td>
+                    <td class="py-3 px-2 font-bold text-slate-900 dark:text-white">${l.user_name} <br/><span class="text-[10px] text-slate-400 font-normal">${l.user_email}</span></td>
+                    <td class="py-3 px-2 font-bold text-indigo-600">${l.exam_title}</td>
+                    <td class="py-3 px-2">
+                      <span class="px-2 py-1 rounded text-[10px] font-black uppercase ${l.violation_type === 'TAB_SWITCH' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'}">
+                        ${l.violation_type}
+                      </span>
+                    </td>
+                    <td class="py-3 px-2 text-slate-500 max-w-xs truncate">${l.details}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
   },
 
   showCreateExamModal() {
@@ -1051,14 +1308,25 @@ window.App = {
     e.preventDefault();
     const title = document.getElementById('new-exam-title').value;
     const code = document.getElementById('new-exam-code').value;
-    const duration_minutes = document.getElementById('new-exam-duration').value;
-    const marks_per_right = document.getElementById('new-exam-right').value;
-    const marks_per_wrong = document.getElementById('new-exam-wrong').value;
-    const max_violations = document.getElementById('new-exam-maxv').value;
-    const enable_proctoring = document.getElementById('new-exam-proctor').value;
+    const duration_minutes = parseInt(document.getElementById('new-exam-duration').value);
+    const marks_per_right = parseFloat(document.getElementById('new-exam-right').value);
+    const marks_per_wrong = parseFloat(document.getElementById('new-exam-wrong').value);
+    const max_violations = parseInt(document.getElementById('new-exam-maxv').value);
+    const enable_proctoring = parseInt(document.getElementById('new-exam-proctor').value);
+
+    if (this.isMockMode) {
+      const exams = JSON.parse(localStorage.getItem('mock_exams') || '[]');
+      exams.unshift({
+        id: Date.now(), title, code, duration_minutes, marks_per_right, marks_per_wrong, max_violations, enable_proctoring, total_question: 0
+      });
+      localStorage.setItem('mock_exams', JSON.stringify(exams));
+      document.getElementById('modal-create-exam').remove();
+      this.loadAdminDashboard();
+      return;
+    }
 
     try {
-      const res = await fetch('/api/exams/admin/create', {
+      const res = await fetch('api/exams/admin/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, code, duration_minutes, marks_per_right, marks_per_wrong, max_violations, enable_proctoring })
@@ -1076,67 +1344,71 @@ window.App = {
   },
 
   async showQuestionManager(examId, examTitle) {
-    try {
-      const res = await fetch(`/api/exams/admin/questions/${examId}`);
-      const data = await res.json();
-      const questions = data.questions || [];
-
-      const modalHtml = `
-        <div id="modal-manage-qs" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700 space-y-6">
-            <div class="flex items-center justify-between border-b pb-4">
-              <h3 class="text-xl font-black text-slate-900 dark:text-white">Manage Questions: ${examTitle}</h3>
-              <button onclick="document.getElementById('modal-manage-qs').remove()" class="text-slate-400 text-xl font-bold">&times;</button>
-            </div>
-
-            <!-- Existing Questions -->
-            <div class="space-y-4">
-              ${questions.map((q, idx) => `
-                <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
-                  <div class="flex justify-between font-bold text-slate-900 dark:text-white mb-2">
-                    <span>Q${idx + 1}: ${q.question_title}</span>
-                    <button onclick="App.deleteQuestion(${q.id}, ${examId}, '${examTitle}')" class="text-red-500">Delete</button>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 text-slate-500">
-                    ${q.options.map(o => `
-                      <div class="${o.is_correct ? 'font-bold text-emerald-600' : ''}">${o.option_number}. ${o.option_title} ${o.is_correct ? '✓' : ''}</div>
-                    `).join('')}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-
-            <!-- Add Question Form -->
-            <form onsubmit="App.handleAddQuestion(event, ${examId}, '${examTitle}')" class="p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-200 dark:border-indigo-800 text-xs space-y-3">
-              <h4 class="font-black text-indigo-900 dark:text-indigo-200 text-sm">Add Question</h4>
-              <input type="text" id="add-q-title" required class="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Question prompt...">
-              
-              <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="add-q-opt1" required class="px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Option 1">
-                <input type="text" id="add-q-opt2" required class="px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Option 2">
-                <input type="text" id="add-q-opt3" required class="px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Option 3">
-                <input type="text" id="add-q-opt4" required class="px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Option 4">
-              </div>
-
-              <div>
-                <label class="block font-bold mb-1">Correct Option Number (1-4)</label>
-                <select id="add-q-correct" class="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl">
-                  <option value="1">Option 1</option>
-                  <option value="2">Option 2</option>
-                  <option value="3">Option 3</option>
-                  <option value="4">Option 4</option>
-                </select>
-              </div>
-
-              <button type="submit" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl">Add Question to Exam</button>
-            </form>
-          </div>
-        </div>
-      `;
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
-    } catch (err) {
-      alert(err.message);
+    let questions = [];
+    if (this.isMockMode) {
+      const mockQuestions = JSON.parse(localStorage.getItem('mock_questions') || '[]');
+      questions = mockQuestions.filter(q => q.exam_id === examId);
+    } else {
+      try {
+        const res = await fetch(`api/exams/admin/questions/${examId}`);
+        const data = await res.json();
+        questions = data.questions || [];
+      } catch (e) {}
     }
+
+    const modalHtml = `
+      <div id="modal-manage-qs" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700 space-y-6">
+          <div class="flex items-center justify-between border-b pb-4">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white">Manage Questions: ${examTitle}</h3>
+            <button onclick="document.getElementById('modal-manage-qs').remove()" class="text-slate-400 text-xl font-bold">&times;</button>
+          </div>
+
+          <!-- Existing Questions -->
+          <div class="space-y-4">
+            ${questions.map((q, idx) => `
+              <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
+                <div class="flex justify-between font-bold text-slate-900 dark:text-white mb-2">
+                  <span>Q${idx + 1}: ${q.question_title}</span>
+                  <button onclick="App.deleteQuestion(${q.id}, ${examId}, '${examTitle}')" class="text-red-500">Delete</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-slate-500">
+                  ${q.options.map(o => `
+                    <div class="${o.is_correct ? 'font-bold text-emerald-600' : ''}">${o.option_number}. ${o.option_title} ${o.is_correct ? '✓' : ''}</div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Add Question Form -->
+          <form onsubmit="App.handleAddQuestion(event, ${examId}, '${examTitle}')" class="p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-200 dark:border-indigo-800 text-xs space-y-3">
+            <h4 class="font-black text-indigo-900 dark:text-indigo-200 text-sm">Add Question</h4>
+            <input type="text" id="add-q-title" required class="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Question prompt...">
+            
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="add-q-opt1" required class="px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Option 1">
+              <input type="text" id="add-q-opt2" required class="px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Option 2">
+              <input type="text" id="add-q-opt3" required class="px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Option 3">
+              <input type="text" id="add-q-opt4" required class="px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl" placeholder="Option 4">
+            </div>
+
+            <div>
+              <label class="block font-bold mb-1">Correct Option Number (1-4)</label>
+              <select id="add-q-correct" class="w-full px-3 py-2 bg-white dark:bg-slate-900 border rounded-xl">
+                <option value="1">Option 1</option>
+                <option value="2">Option 2</option>
+                <option value="3">Option 3</option>
+                <option value="4">Option 4</option>
+              </select>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl">Add Question to Exam</button>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
   async handleAddQuestion(e, examId, examTitle) {
@@ -1146,10 +1418,29 @@ window.App = {
     const opt2 = document.getElementById('add-q-opt2').value;
     const opt3 = document.getElementById('add-q-opt3').value;
     const opt4 = document.getElementById('add-q-opt4').value;
-    const correct = document.getElementById('add-q-correct').value;
+    const correct = parseInt(document.getElementById('add-q-correct').value);
+
+    if (this.isMockMode) {
+      const mockQuestions = JSON.parse(localStorage.getItem('mock_questions') || '[]');
+      mockQuestions.push({
+        id: Date.now(),
+        exam_id: examId,
+        question_title: title,
+        options: [
+          { id: Date.now() + 1, option_number: 1, option_title: opt1, is_correct: correct === 1 ? 1 : 0 },
+          { id: Date.now() + 2, option_number: 2, option_title: opt2, is_correct: correct === 2 ? 1 : 0 },
+          { id: Date.now() + 3, option_number: 3, option_title: opt3, is_correct: correct === 3 ? 1 : 0 },
+          { id: Date.now() + 4, option_number: 4, option_title: opt4, is_correct: correct === 4 ? 1 : 0 }
+        ]
+      });
+      localStorage.setItem('mock_questions', JSON.stringify(mockQuestions));
+      document.getElementById('modal-manage-qs').remove();
+      this.showQuestionManager(examId, examTitle);
+      return;
+    }
 
     try {
-      const res = await fetch('/api/exams/admin/add-question', {
+      const res = await fetch('api/exams/admin/add-question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1173,7 +1464,15 @@ window.App = {
 
   async deleteQuestion(id, examId, examTitle) {
     if (confirm('Delete this question?')) {
-      await fetch(`/api/exams/admin/question/${id}`, { method: 'DELETE' });
+      if (this.isMockMode) {
+        let mockQuestions = JSON.parse(localStorage.getItem('mock_questions') || '[]');
+        mockQuestions = mockQuestions.filter(q => q.id !== id);
+        localStorage.setItem('mock_questions', JSON.stringify(mockQuestions));
+        document.getElementById('modal-manage-qs').remove();
+        this.showQuestionManager(examId, examTitle);
+        return;
+      }
+      await fetch(`api/exams/admin/question/${id}`, { method: 'DELETE' });
       document.getElementById('modal-manage-qs').remove();
       this.showQuestionManager(examId, examTitle);
     }
@@ -1181,13 +1480,24 @@ window.App = {
 
   async deleteExam(id) {
     if (confirm('Delete this exam completely?')) {
-      await fetch(`/api/exams/admin/exam/${id}`, { method: 'DELETE' });
+      if (this.isMockMode) {
+        let mockExams = JSON.parse(localStorage.getItem('mock_exams') || '[]');
+        mockExams = mockExams.filter(e => e.id !== id);
+        localStorage.setItem('mock_exams', JSON.stringify(mockExams));
+        this.loadAdminDashboard();
+        return;
+      }
+      await fetch(`api/exams/admin/exam/${id}`, { method: 'DELETE' });
       this.loadAdminDashboard();
     }
   },
 
   async logout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    if (this.isMockMode) {
+      localStorage.removeItem('mock_session');
+    } else {
+      await fetch('api/auth/logout', { method: 'POST' });
+    }
     this.currentUser = null;
     this.renderAuthScreen();
   }
