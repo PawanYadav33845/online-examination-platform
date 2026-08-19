@@ -8,7 +8,7 @@ A modern, high-performance, and secure **Online Examination Platform** built wit
 ![Proctoring](https://img.shields.io/badge/Proctoring-Active-red.svg)
 ![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Pages-orange.svg)
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen.svg)](https://PawanYadav33845.github.io/online-examination-platform/)
+[![Live Demo](https://PawanYadav33845.github.io/online-examination-platform/)
 
 ---
 
@@ -103,32 +103,6 @@ npm start
 
 # Access application at: http://localhost:3000
 ```
-
----
-
-## 🌐 Deploying to GitHub Pages
-
-This repository includes a pre-configured **GitHub Actions Workflow** ([`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)) for automated deployment of static assets to Git[...]
-
-### Step-by-Step GitHub Pages Setup:
-
-1. **Push Code to GitHub**:
-   ```bash
-   git add .
-   git commit -m "Update online examination platform & workflows"
-   git push origin main
-   ```
-
-2. **Enable GitHub Pages in Repository Settings**:
-   - Go to your repository on GitHub.
-   - Click on **Settings** -> **Pages** (under Code and automation).
-   - Under **Build and deployment** -> **Source**, select **GitHub Actions**.
-
-3. **Automated CI/CD Deployment**:
-   - The GitHub Action will automatically trigger on push to `main` / `master`.
-   - Once completed, your web interface will be live at:
-     `https://<your-username>.github.io/<repository-name>/`
-
 
 **Live demo URL:** https://PawanYadav33845.github.io/online-examination-platform/
 
