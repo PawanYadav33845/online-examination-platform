@@ -1,12 +1,14 @@
 # 🛡️ Online Examination & Anti-Cheating Proctoring Platform
 
-A modern, high-performance, and secure **Online Examination Platform** built with **Node.js (Express), SQLite3, and Tailwind CSS**. Includes an anti-cheating proctoring engine with browser tab/window switching detection, camera preview, fullscreen locking, input restriction guards, real-time warning counters, and auto-submission on violation limits.
+A modern, high-performance, and secure **Online Examination Platform** built with **Node.js (Express), SQLite3, and Tailwind CSS**. Includes an anti-cheating proctoring engine with browser tab/wind[...]
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-v22%2B-green.svg)
 ![Database](https://img.shields.io/badge/Database-SQLite3-blue.svg)
 ![Proctoring](https://img.shields.io/badge/Proctoring-Active-red.svg)
 ![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Pages-orange.svg)
+
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen.svg)](https://PawanYadav33845.github.io/online-examination-platform/)
 
 ---
 
@@ -106,7 +108,7 @@ npm start
 
 ## 🌐 Deploying to GitHub Pages
 
-This repository includes a pre-configured **GitHub Actions Workflow** ([`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)) for automated deployment of static assets to GitHub Pages.
+This repository includes a pre-configured **GitHub Actions Workflow** ([`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)) for automated deployment of static assets to Git[...]
 
 ### Step-by-Step GitHub Pages Setup:
 
@@ -126,6 +128,9 @@ This repository includes a pre-configured **GitHub Actions Workflow** ([`.github
    - The GitHub Action will automatically trigger on push to `main` / `master`.
    - Once completed, your web interface will be live at:
      `https://<your-username>.github.io/<repository-name>/`
+
+
+**Live demo URL:** https://PawanYadav33845.github.io/online-examination-platform/
 
 ---
 
