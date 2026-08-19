@@ -8,7 +8,7 @@ A modern, high-performance, and secure **Online Examination Platform** built wit
 ![Proctoring](https://img.shields.io/badge/Proctoring-Active-red.svg)
 ![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Pages-orange.svg)
 
-[![Live Demo](https://PawanYadav33845.github.io/online-examination-platform/)
+[[Live Demo](https://PawanYadav33845.github.io/online-examination-platform/)
 
 ---
 
